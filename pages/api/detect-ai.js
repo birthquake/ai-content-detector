@@ -2,18 +2,14 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
-
   const { text } = req.body;
-
   if (!text || text.length < 50) {
     return res.status(400).json({ error: 'Text must be at least 50 characters long' });
   }
-
   try {
     // Use Hugging Face AI detection model
     const aiProbability = await detectWithHuggingFace(text);
     const confidence = aiProbability > 70 ? 'High' : aiProbability > 40 ? 'Medium' : 'Low';
-
     res.status(200).json({
       aiProbability: Math.round(aiProbability),
       confidence: confidence,
@@ -27,7 +23,8 @@ export default async function handler(req, res) {
 }
 
 async function detectWithHuggingFace(text) {
-  const API_URL = 'https://api-inference.huggingface.co/models/roberta-base-openai-detector';
+  // Try a more modern AI detection model
+  const API_URL = 'https://api-inference.huggingface.co/models/Hello-SimpleAI/chatgpt-detector-roberta';
   
   const response = await fetch(API_URL, {
     method: 'POST',
@@ -39,18 +36,15 @@ async function detectWithHuggingFace(text) {
       inputs: text,
     }),
   });
-
   if (!response.ok) {
     throw new Error(`Hugging Face API error: ${response.status}`);
   }
-
   const result = await response.json();
   
-  // The model returns labels like 'Real' and 'Fake'
-  // Convert to probability percentage
+  // This model returns 'HUMAN' and 'CHATGPT' labels
   if (result && result[0]) {
-    const fakeScore = result[0].find(item => item.label === 'Fake');
-    return fakeScore ? fakeScore.score * 100 : 0;
+    const chatgptScore = result[0].find(item => item.label === 'CHATGPT');
+    return chatgptScore ? chatgptScore.score * 100 : 0;
   }
   
   return 0;
