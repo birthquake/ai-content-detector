@@ -6,15 +6,17 @@ import { db } from '../lib/firebase';
 import AuthForm from '../components/AuthForm';
 
 export default function Home() {
-  const { user, logout } = useAuth();
+  const { user, logout, sendVerificationEmail, refreshUser } = useAuth();
   const [text, setText] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [userStats, setUserStats] = useState(null);
+  const [verificationLoading, setVerificationLoading] = useState(false);
+  const [verificationMessage, setVerificationMessage] = useState('');
 
   // Load user stats when user logs in
   useEffect(() => {
-    if (user) {
+    if (user && user.emailVerified) {
       loadUserStats();
     } else {
       setUserStats(null);
@@ -95,6 +97,26 @@ export default function Home() {
     }
   };
 
+  const handleResendVerification = async () => {
+    setVerificationLoading(true);
+    setVerificationMessage('');
+    
+    try {
+      await sendVerificationEmail();
+      setVerificationMessage('Verification email sent! Please check your inbox.');
+    } catch (error) {
+      setVerificationMessage('Error sending email. Please try again.');
+    }
+    
+    setVerificationLoading(false);
+  };
+
+  const handleRefreshVerification = async () => {
+    setVerificationLoading(true);
+    await refreshUser();
+    setVerificationLoading(false);
+  };
+
   // Show auth form if user is not logged in
   if (!user) {
     return (
@@ -110,7 +132,98 @@ export default function Home() {
     );
   }
 
-  // Show main app if user is logged in
+  // Show verification screen if user is logged in but not verified
+  if (user && !user.emailVerified) {
+    return (
+      <div className="container">
+        <div style={{ textAlign: 'center', padding: '2rem' }}>
+          <h1>📧 Verify Your Email</h1>
+          <div style={{ 
+            backgroundColor: '#fff3cd', 
+            border: '1px solid #ffeaa7',
+            borderRadius: '8px',
+            padding: '2rem',
+            margin: '2rem 0',
+            maxWidth: '500px',
+            marginLeft: 'auto',
+            marginRight: 'auto'
+          }}>
+            <p style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>
+              We've sent a verification email to:
+            </p>
+            <p style={{ 
+              fontWeight: 'bold', 
+              marginBottom: '2rem',
+              fontSize: '1.1rem',
+              color: '#333'
+            }}>
+              {user.email}
+            </p>
+            <p style={{ marginBottom: '2rem', color: '#666' }}>
+              Please click the verification link in your email before using the AI detector.
+            </p>
+            
+            {verificationMessage && (
+              <div style={{ 
+                margin: '1rem 0',
+                padding: '1rem',
+                backgroundColor: verificationMessage.includes('Error') ? '#f8d7da' : '#d4edda',
+                border: `1px solid ${verificationMessage.includes('Error') ? '#f5c6cb' : '#c3e6cb'}`,
+                borderRadius: '4px',
+                color: verificationMessage.includes('Error') ? '#721c24' : '#155724'
+              }}>
+                {verificationMessage}
+              </div>
+            )}
+            
+            <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button 
+                onClick={handleResendVerification}
+                disabled={verificationLoading}
+                style={{ 
+                  backgroundColor: '#007bff',
+                  padding: '0.75rem 1.5rem',
+                  fontSize: '1rem'
+                }}
+              >
+                {verificationLoading ? 'Sending...' : 'Resend Email'}
+              </button>
+              
+              <button 
+                onClick={handleRefreshVerification}
+                disabled={verificationLoading}
+                style={{ 
+                  backgroundColor: '#28a745',
+                  padding: '0.75rem 1.5rem',
+                  fontSize: '1rem'
+                }}
+              >
+                {verificationLoading ? 'Checking...' : 'I\'ve Verified'}
+              </button>
+            </div>
+          </div>
+          
+          <p style={{ color: '#666', marginTop: '2rem' }}>
+            Wrong email address?{' '}
+            <button 
+              onClick={logout}
+              style={{ 
+                background: 'none',
+                border: 'none',
+                color: '#007bff',
+                cursor: 'pointer',
+                textDecoration: 'underline'
+              }}
+            >
+              Sign out and try again
+            </button>
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show main app if user is logged in and verified
   return (
     <div className="container">
       {/* Header with user info */}
@@ -118,7 +231,7 @@ export default function Home() {
         <div>
           <h1>🤖 AI Content Detector</h1>
           <p style={{ color: '#666', margin: '0.5rem 0' }}>
-            Welcome, {user.email}
+            Welcome, {user.email} ✅
           </p>
           {userStats && (
             <p style={{ color: '#666', fontSize: '0.9rem' }}>
