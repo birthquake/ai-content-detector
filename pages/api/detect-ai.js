@@ -10,16 +10,14 @@ export default async function handler(req, res) {
   }
   
   try {
-    const rawResult = await callHuggingFaceDebug(text);
+    const aiProbability = await detectWithHuggingFace(text);
+    const confidence = aiProbability > 70 ? 'High' : aiProbability > 40 ? 'Medium' : 'Low';
     
-    // Return both the raw result and our attempt to parse it
     res.status(200).json({
-      debug: true,
-      rawHuggingFaceResponse: rawResult,
-      responseType: typeof rawResult,
-      isArray: Array.isArray(rawResult),
+      aiProbability: Math.round(aiProbability),
+      confidence: confidence,
       textLength: text.length,
-      message: "This is the raw response from Hugging Face"
+      model: 'Hugging Face OpenAI Detector'
     });
   } catch (error) {
     console.error('Detection error:', error);
@@ -30,8 +28,9 @@ export default async function handler(req, res) {
   }
 }
 
-async function callHuggingFaceDebug(text) {
-  const API_URL = 'https://api-inference.huggingface.co/models/roberta-base-openai-detector';
+async function detectWithHuggingFace(text) {
+  // Correct URL format with openai-community namespace
+  const API_URL = 'https://api-inference.huggingface.co/models/openai-community/roberta-base-openai-detector';
   
   const response = await fetch(API_URL, {
     method: 'POST',
@@ -51,9 +50,11 @@ async function callHuggingFaceDebug(text) {
 
   const result = await response.json();
   
-  // Log to server console too
-  console.log('Hugging Face Raw Response:');
-  console.log(JSON.stringify(result, null, 2));
+  // The model returns: [{'label': 'Real', 'score': 0.8} or {'label': 'Fake', 'score': 0.2}]
+  if (result && result[0]) {
+    const fakeScore = result[0].find(item => item.label === 'Fake');
+    return fakeScore ? fakeScore.score * 100 : 0;
+  }
   
-  return result;
+  return 0;
 }
