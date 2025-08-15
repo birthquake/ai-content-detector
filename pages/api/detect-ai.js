@@ -13,9 +13,20 @@ export default async function handler(req, res) {
     const aiProbability = await detectWithHuggingFace(text);
     const confidence = aiProbability > 70 ? 'High' : aiProbability > 40 ? 'Medium' : 'Low';
     
+    // Add assessment based on AI probability
+    let assessment;
+    if (aiProbability >= 70) {
+      assessment = 'Likely AI-generated';
+    } else if (aiProbability >= 40) {
+      assessment = 'Uncertain - mixed signals detected';
+    } else {
+      assessment = 'Likely human-written';
+    }
+    
     res.status(200).json({
       aiProbability: Math.round(aiProbability),
       confidence: confidence,
+      assessment: assessment,
       textLength: text.length,
       model: 'Hugging Face OpenAI Detector'
     });
