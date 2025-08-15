@@ -9,7 +9,7 @@ export default function AuthForm() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const { login, signup, signInWithGoogle } = useAuth();
+  const { login, signup } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -22,17 +22,6 @@ export default function AuthForm() {
       } else {
         await signup(email, password);
       }
-    } catch (error) {
-      setError(error.message);
-    }
-    setLoading(false);
-  };
-
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-    setError('');
-    try {
-      await signInWithGoogle();
     } catch (error) {
       setError(error.message);
     }
@@ -76,16 +65,6 @@ export default function AuthForm() {
             {loading ? 'Loading...' : (isLogin ? 'Sign In' : 'Create Account')}
           </button>
         </form>
-        
-        <div className="divider">or</div>
-        
-        <button 
-          onClick={handleGoogleSignIn}
-          className="google-button"
-          disabled={loading}
-        >
-          Continue with Google
-        </button>
         
         <p className="auth-toggle">
           {isLogin ? "Don't have an account? " : "Already have an account? "}
