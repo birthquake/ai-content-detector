@@ -18,12 +18,15 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('Detection error:', error);
-    res.status(500).json({ error: 'Analysis failed' });
+    // Return the error details so we can see what's wrong
+    res.status(500).json({ 
+      error: 'Analysis failed',
+      details: error.message 
+    });
   }
 }
 
 async function detectWithHuggingFace(text) {
-  // Try a more modern AI detection model
   const API_URL = 'https://api-inference.huggingface.co/models/Hello-SimpleAI/chatgpt-detector-roberta';
   
   const response = await fetch(API_URL, {
@@ -36,10 +39,16 @@ async function detectWithHuggingFace(text) {
       inputs: text,
     }),
   });
+
   if (!response.ok) {
-    throw new Error(`Hugging Face API error: ${response.status}`);
+    const errorText = await response.text();
+    throw new Error(`Hugging Face API error: ${response.status} - ${errorText}`);
   }
+
   const result = await response.json();
+  
+  // Debug: log what we actually get back
+  console.log('HF API Response:', JSON.stringify(result, null, 2));
   
   // This model returns 'HUMAN' and 'CHATGPT' labels
   if (result && result[0]) {
