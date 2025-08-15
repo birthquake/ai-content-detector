@@ -5,34 +5,53 @@ export default async function handler(req, res) {
 
   const { text } = req.body;
 
-  if (!text || text.length < 10) {
-    return res.status(400).json({ error: 'Text too short to analyze' });
+  if (!text || text.length < 50) {
+    return res.status(400).json({ error: 'Text must be at least 50 characters long' });
   }
 
   try {
-    // Simple AI detection logic (we'll improve this later)
-    const aiProbability = calculateAIProbability(text);
+    // Use Hugging Face AI detection model
+    const aiProbability = await detectWithHuggingFace(text);
     const confidence = aiProbability > 70 ? 'High' : aiProbability > 40 ? 'Medium' : 'Low';
 
     res.status(200).json({
       aiProbability: Math.round(aiProbability),
       confidence: confidence,
-      textLength: text.length
+      textLength: text.length,
+      model: 'Hugging Face AI Detection'
     });
   } catch (error) {
+    console.error('Detection error:', error);
     res.status(500).json({ error: 'Analysis failed' });
   }
 }
 
-function calculateAIProbability(text) {
-  // Basic heuristic - we'll replace this with real AI detection later
-  let score = 0;
+async function detectWithHuggingFace(text) {
+  const API_URL = 'https://api-inference.huggingface.co/models/roberta-base-openai-detector';
   
-  // Check for AI-like patterns
-  if (text.includes('As an AI') || text.includes('I apologize')) score += 30;
-  if (text.split('.').length > 10) score += 20; // Long sentences
-  if (text.includes('Furthermore') || text.includes('Moreover')) score += 15;
-  if (text.split(' ').length > 100) score += 10; // Length factor
+  const response = await fetch(API_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${process.env.HUGGING_FACE_API_KEY}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      inputs: text,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Hugging Face API error: ${response.status}`);
+  }
+
+  const result = await response.json();
   
-  return Math.min(score, 95); // Cap at 95%
+  // The model returns labels like 'Real' and 'Fake'
+  // Convert to probability percentage
+  if (result && result[0]) {
+    const fakeScore = result[0].find(item => item.label === 'Fake');
+    return fakeScore ? fakeScore.score * 100 : 0;
+  }
+  
+  return 0;
 }
