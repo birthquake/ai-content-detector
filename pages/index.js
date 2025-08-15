@@ -22,23 +22,23 @@ export default function Home() {
   };
 
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
+    <div className="container">
       <h1>AI Content Detector</h1>
       <textarea
         value={text}
         onChange={(e) => setText(e.target.value)}
-        placeholder="Paste text to analyze..."
-        style={{ width: '100%', height: '200px', marginBottom: '10px' }}
+        placeholder="Paste text to analyze for AI generation..."
       />
       <button onClick={analyzeText} disabled={loading || !text}>
         {loading ? 'Analyzing...' : 'Detect AI Content'}
       </button>
       
       {result && (
-        <div style={{ marginTop: '20px', padding: '10px', border: '1px solid #ccc' }}>
-          <h3>Result:</h3>
-          <p>AI Probability: {result.aiProbability}%</p>
-          <p>Confidence: {result.confidence}</p>
+        <div className="result-box">
+          <h3>Analysis Result:</h3>
+          <p><strong>AI Probability:</strong> {result.aiProbability}%</p>
+          <p><strong>Confidence Level:</strong> {result.confidence}</p>
+          <p><strong>Text Length:</strong> {result.textLength} characters</p>
         </div>
       )}
     </div>
